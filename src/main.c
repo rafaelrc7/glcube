@@ -17,21 +17,25 @@
 #define _DEBUG
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void key_callback(GLFWwindow *window, int key, int scancode, int action
-																	, int mods);
+void key_callback(	GLFWwindow *window, int key, int scancode, int action,
+					int mods);
 void GLAPIENTRY GLErrorCallback(GLenum source, GLenum type, GLuint id,
 								GLenum severity, GLsizei length,
 								const GLchar *message, const void *userParam);
 void pollInput(GLFWwindow *window, void (**keys) (GLFWwindow *win, int key));
 void rotateCube(GLFWwindow *window, int direction);
 void scaleCube(GLFWwindow *window, int direction);
-void setWireframe(GLFWwindow *window, int direction);
+void setPolygonMode(GLFWwindow *window, int direction);
 
-float cube_scale = 1.0f, xRotation = 15.0f, yRotation = 30.0f;
+// Global Variables
+float deltaTime = 0.0f, lastFrame = 0.0f;
+float xRotation = 35.0f, yRotation = 45.0f, zRotation = 0.0f;
+float cube_scale = 1.0f;
 
 int main(int argc, char *argv[])
 {
 	int width, height;
+	float currentFrame;
 	unsigned int shaderProgram, u_model, u_view, u_projection;
 	unsigned int vertexBuffers[VBO_QNT], vertexArrays[VAO_QNT],
 				indexBuffers[EBO_QNT];
@@ -42,37 +46,36 @@ int main(int argc, char *argv[])
 	// Cube vertices and indices
 	float vertices[] = {
 		// Positions			// Colours
-		-0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,
-		0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,
-		0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,
-		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, 0.5f,		0.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f,		0.0f, 0.0f, 1.0f,
+		0.5f, 0.5f, 0.5f,		0.0f, 0.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f,		0.0f, 0.0f, 1.0f,
 
 		-0.5f, 0.5f, 0.5f,		0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.5f,		0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, -0.5f,		0.0f, 1.0f, 0.0f,
 		-0.5f, 0.5f, -0.5f,		0.0f, 1.0f, 0.0f,
 
-		-0.5f, -0.5f, -0.5f,	0.0f, 0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,		0.0f, 0.0f, 1.0f,
-		0.5f, -0.5f, 0.5f,		0.0f, 0.0f, 1.0f,
-		-0.5f, -0.5f, 0.5f,		0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 1.0f,
 
-		-0.5f, -0.5f, -0.5f,	1.0f, 1.0f, 0.0f,
-		-0.5f, -0.5f, 0.5f,		1.0f, 1.0f, 0.0f,
-		-0.5f, 0.5f, 0.5f,		1.0f, 1.0f, 0.0f,
-		-0.5f, 0.5f, -0.5f,		1.0f, 1.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, 0.5f,		1.0f, 0.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f,		1.0f, 0.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 0.0f,
 
 		0.5f, -0.5f, 0.5f,		0.0f, 1.0f, 1.0f,
 		0.5f, -0.5f, -0.5f,		0.0f, 1.0f, 1.0f,
 		0.5f, 0.5f, -0.5f,		0.0f, 1.0f, 1.0f,
 		0.5f, 0.5f, 0.5f,		0.0f, 1.0f, 1.0f,
 
-		0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,	1.0f, 0.0f, 1.0f,
-		-0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 1.0f,
-		0.5f, 0.5f, -0.5f,		1.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,		1.0f, 1.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f, 1.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f,		1.0f, 1.0f, 0.0f,
 	};
-
 
 	unsigned int indices[] = {
 		0, 1, 2,
@@ -94,6 +97,7 @@ int main(int argc, char *argv[])
 		22, 23, 20,
 	};
 
+
 	// Program keybindings
 	void (*keys[512]) (GLFWwindow *win, int key) = {0};
 
@@ -102,11 +106,13 @@ int main(int argc, char *argv[])
 	keys[GLFW_KEY_A] = rotateCube;
 	keys[GLFW_KEY_S] = rotateCube;
 	keys[GLFW_KEY_D] = rotateCube;
+	keys[GLFW_KEY_Q] = rotateCube;
+	keys[GLFW_KEY_E] = rotateCube;
 	keys[GLFW_KEY_R] = scaleCube;
 	keys[GLFW_KEY_F] = scaleCube;
-	keys[GLFW_KEY_1] = setWireframe;
-	keys[GLFW_KEY_2] = setWireframe;
-	keys[GLFW_KEY_3] = setWireframe;
+	keys[GLFW_KEY_1] = setPolygonMode;
+	keys[GLFW_KEY_2] = setPolygonMode;
+	keys[GLFW_KEY_3] = setPolygonMode;
 
 
 	// GLFW and GLEW init
@@ -127,7 +133,7 @@ int main(int argc, char *argv[])
 
 	if( (err=glewInit()) != GLEW_OK) {
 		fprintf(stderr, "Failed to initialise GLEW:\n%s\n",
-													glewGetErrorString(err));
+				glewGetErrorString(err));
 		glfwTerminate();
 		return -1;
 	}
@@ -148,7 +154,7 @@ int main(int argc, char *argv[])
 	u_projection = glGetUniformLocation(shaderProgram, "u_projection");
 
 
-	// Create Buffers
+	// Create and set Buffers
 
 	glGenVertexArrays(VAO_QNT, vertexArrays);
 	glBindVertexArray(vertexArrays[0]);
@@ -160,15 +166,15 @@ int main(int argc, char *argv[])
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float),
-													(void*)(3*sizeof(float)));
+	glVertexAttribPointer(	1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float),
+							(void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	glGenBuffers(EBO_QNT, indexBuffers);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffers[0]);
 
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices
-															, GL_STATIC_DRAW);
+	glBufferData(	GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+					GL_STATIC_DRAW);
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -176,6 +182,10 @@ int main(int argc, char *argv[])
 
 	// MAIN LOOP
 	while (!glfwWindowShouldClose(window)) {
+		currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		pollInput(window, keys);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -191,12 +201,13 @@ int main(int argc, char *argv[])
 		glm_scale_uni(model, cube_scale);
 		glm_rotate(model, glm_rad(xRotation), (vec3){1.0f, 0.0f, 0.0f});
 		glm_rotate(model, glm_rad(yRotation), (vec3){0.0f, 1.0f, 0.0f});
+		glm_rotate(model, glm_rad(zRotation), (vec3){0.0f, 0.0f, 1.0f});
 
 		glm_translate(view, (vec3){0.0f, 0.0f, -3.0f});
 
 		glfwGetWindowSize(window, &width, &height);
 		glm_perspective(glm_rad(45.0f), (float)width/(float)height, 0.1f,
-														100.0f, projection);
+						100.0f, projection);
 
 		glUniformMatrix4fv(u_model, 1, GL_FALSE, (float *)model);
 		glUniformMatrix4fv(u_view, 1, GL_FALSE, (float *)view);
@@ -238,33 +249,37 @@ void pollInput(GLFWwindow *window, void (**keys) (GLFWwindow *win, int key))
 
 void rotateCube(GLFWwindow *win, int key)
 {
-	float step = 2.0f;
+	float step = 120.0f*deltaTime;
 	switch (key) {
 		case GLFW_KEY_D:
-		case GLFW_KEY_RIGHT:
 			if ( (yRotation+=step) > 360.0f )
 				yRotation = 0.0f;
 			break;
 		case GLFW_KEY_A:
-		case GLFW_KEY_LEFT:
 			if ( (yRotation-=step) < 0.0f )
 				yRotation = 360.0f;
 			break;
 		case GLFW_KEY_W:
-		case GLFW_KEY_UP:
 			if ( (xRotation-=step) < 0.0f )
 				xRotation = 360.0f;
 			break;
 		case GLFW_KEY_S:
-		case GLFW_KEY_DOWN:
 			if ( (xRotation+=step) < 0.0f )
 				xRotation = 360.0f;
+			break;
+		case GLFW_KEY_Q:
+			if ( (zRotation-=step) < 0.0f )
+				zRotation = 360.0f;
+			break;
+		case GLFW_KEY_E:
+			if ( (zRotation+=step) < 0.0f )
+				zRotation = 360.0f;
 			break;
 	}
 }
 
 void scaleCube(GLFWwindow *win, int key) {
-	float step = 0.02f;
+	float step = 0.7f*deltaTime;
 
 	switch (key) {
 		case GLFW_KEY_R:
@@ -279,7 +294,7 @@ void scaleCube(GLFWwindow *win, int key) {
 
 }
 
-void setWireframe(GLFWwindow *win, int key) {
+void setPolygonMode(GLFWwindow *win, int key) {
 	switch (key) {
 		case GLFW_KEY_1:
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
