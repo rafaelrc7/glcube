@@ -25,9 +25,12 @@ make
 ## Usage
 
 The program is simple and has quite few controls.
-* W,A,S,D - Rotates cube around the X and Y axis.
-* R,F - Scales the cube, making it bigger or smaller.
-* 1,2,3 - Set glPolygonMode to, respectively, GL_FILL, GL_LINE and GL_POINT.
+* W, S- Rotates cube around the X.
+* A, D- Rotates cube around the Y.
+* Q, E- Rotates cube around the Z.
+* R, F- Scales the cube, making it bigger or smaller.
+* TAB - Toggle between perspective and orthographic projections.
+* 1, 2, 3 - Set glPolygonMode to, respectively, GL_FILL, GL_LINE and GL_POINT.
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
