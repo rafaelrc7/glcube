@@ -23,19 +23,21 @@ void GLAPIENTRY GLErrorCallback(GLenum source, GLenum type, GLuint id,
 								GLenum severity, GLsizei length,
 								const GLchar *message, const void *userParam);
 void pollInput(GLFWwindow *window, void (**keys) (GLFWwindow *win, int key));
-void rotateCube(GLFWwindow *window, int direction);
-void scaleCube(GLFWwindow *window, int direction);
-void setPolygonMode(GLFWwindow *window, int direction);
+void rotateCube(GLFWwindow *window, int key);
+void scaleCube(GLFWwindow *window, int key);
+void setPolygonMode(GLFWwindow *window, int key);
+void toggleProjection(GLFWwindow *window, int key);
 
 // Global Variables
 float deltaTime = 0.0f, lastFrame = 0.0f;
 float xRotation = 35.0f, yRotation = 45.0f, zRotation = 0.0f;
 float cube_scale = 1.0f;
+char projectionType = 0;
 
 int main(int argc, char *argv[])
 {
 	int width, height;
-	float currentFrame;
+	float currentFrame, ar;
 	unsigned int shaderProgram, u_model, u_view, u_projection;
 	unsigned int vertexBuffers[VBO_QNT], vertexArrays[VAO_QNT],
 				indexBuffers[EBO_QNT];
@@ -113,6 +115,7 @@ int main(int argc, char *argv[])
 	keys[GLFW_KEY_1] = setPolygonMode;
 	keys[GLFW_KEY_2] = setPolygonMode;
 	keys[GLFW_KEY_3] = setPolygonMode;
+	keys[GLFW_KEY_TAB] = toggleProjection;
 
 
 	// GLFW and GLEW init
@@ -198,16 +201,30 @@ int main(int argc, char *argv[])
 		glm_mat4_identity(view);
 		glm_mat4_identity(projection);
 
+		// Model Matrix
 		glm_scale_uni(model, cube_scale);
 		glm_rotate(model, glm_rad(xRotation), (vec3){1.0f, 0.0f, 0.0f});
 		glm_rotate(model, glm_rad(yRotation), (vec3){0.0f, 1.0f, 0.0f});
 		glm_rotate(model, glm_rad(zRotation), (vec3){0.0f, 0.0f, 1.0f});
 
+		// View Matrix
 		glm_translate(view, (vec3){0.0f, 0.0f, -3.0f});
 
+		// Aspect Ratio Calculation
 		glfwGetWindowSize(window, &width, &height);
-		glm_perspective(glm_rad(45.0f), (float)width/(float)height, 0.1f,
-						100.0f, projection);
+		ar = (float)width/(float)height;
+
+		// Projection Matrix
+		if (!projectionType)
+			glm_perspective(glm_rad(45.0f), ar, 0.1f, 100.0f, projection);
+		else {
+			if (ar > 1)
+				glm_ortho(	-1.0f*ar, 1.0f*ar, -1.0f, 1.0f, 0.1f, 100.0f,
+							projection );
+			else
+				glm_ortho(	-1.0f, 1.0f, -1.0f/ar, 1.0f/ar, 0.1f, 100.0f,
+							projection );
+		}
 
 		glUniformMatrix4fv(u_model, 1, GL_FALSE, (float *)model);
 		glUniformMatrix4fv(u_view, 1, GL_FALSE, (float *)view);
@@ -238,7 +255,7 @@ void pollInput(GLFWwindow *window, void (**keys) (GLFWwindow *win, int key))
 {
 	int i = 0;
 
-	for (i = 0; i < 257; i++) {
+	for (i = 0; i < 512; i++) {
 		if (!keys[i])
 			continue;
 
@@ -249,7 +266,7 @@ void pollInput(GLFWwindow *window, void (**keys) (GLFWwindow *win, int key))
 
 void rotateCube(GLFWwindow *win, int key)
 {
-	float step = 120.0f*deltaTime;
+	float step = 100.0f*deltaTime;
 	switch (key) {
 		case GLFW_KEY_D:
 			if ( (yRotation+=step) > 360.0f )
@@ -278,7 +295,8 @@ void rotateCube(GLFWwindow *win, int key)
 	}
 }
 
-void scaleCube(GLFWwindow *win, int key) {
+void scaleCube(GLFWwindow *win, int key)
+{
 	float step = 0.7f*deltaTime;
 
 	switch (key) {
@@ -294,7 +312,8 @@ void scaleCube(GLFWwindow *win, int key) {
 
 }
 
-void setPolygonMode(GLFWwindow *win, int key) {
+void setPolygonMode(GLFWwindow *win, int key)
+{
 	switch (key) {
 		case GLFW_KEY_1:
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -305,6 +324,15 @@ void setPolygonMode(GLFWwindow *win, int key) {
 		case GLFW_KEY_3:
 			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 			break;
+	}
+}
+
+void toggleProjection(GLFWwindow *window, int key)
+{
+	if (key == GLFW_KEY_TAB && glfwGetKey(window, key) == GLFW_PRESS) {
+		projectionType = !projectionType;
+		while(glfwGetKey(window, key) == GLFW_PRESS)
+			glfwPollEvents();
 	}
 }
 
