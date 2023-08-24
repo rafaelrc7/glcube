@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	window = glfwCreateWindow(SCR_WID, SCR_HGT, "Shader Demo", NULL, NULL);
+	window = glfwCreateWindow(SCR_WID, SCR_HGT, "glcube", NULL, NULL);
 		if (!window) {
 		fprintf(stderr, "Failed to create GLFW window\n");
 		glfwTerminate();

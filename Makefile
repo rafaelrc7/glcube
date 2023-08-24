@@ -1,49 +1,65 @@
-##########TEMPLATE##########
+TARGET ?= glcube
 
-TARGET=cube
+CXX ?= g++
+CC ?= gcc
+AS ?= as
 
-SRCDIR=src
-OBJDIR=obj
-DEPDIR=dep
+DEBUGFLAGS ?= -DDEBUG -g -O0
+RELEASEFLAGS ?= -DNDEBUG -O2 -s
 
-CC=gcc
-EXT=.c
+CXXFLAGS ?= -std=c++17 -Wall -Wextra -pedantic `pkg-config --cflags gl glew glfw3 cglm`
+CFLAGS ?= -std=c17 -Wall -Wextra -pedantic `pkg-config --cflags gl glew glfw3 cglm`
+LDFLAGS ?= `pkg-config --libs gl glew glfw3 cglm`
 
-CCFLAGS=-g -O0 -Werror
-LDFLAGS=$(shell pkg-config --libs gl glew glfw3 cglm)
+SRC_DIR ?= ./src
+BUILD_DIR ?= ./build
+BIN_DIR ?= ./bin
 
+all: release
+########################## DONT EDIT BELOW THIS LINE ##########################
 
-##########AUTO##########
+.PHONY: all debug release clean
 
-SRC=$(wildcard $(SRCDIR)/*$(EXT))
-OBJ=$(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)/%.o)
-DEP=$(OBJ:$(OBJDIR)/%.o=$(DEPDIR)/%.d)
+SRCS := $(shell find $(SRC_DIR) -name *.c -or -name *.cpp -or -name *.s)
+OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
+DEPS := $(OBJS:.o=.d)
 
+INC_DIRS := $(shell find $(SRC_DIR) -type d)
+INC_DIRS_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-##########TARGETS##########
+BUILD_SRC_DIRS := $(addprefix $(BUILD_DIR)/,$(SRC_DIR))
 
-.PHONY: all
-all: $(TARGET)
+debug: CXXFLAGS += $(DEBUGFLAGS)
+debug: CFLAGS   += $(DEBUGFLAGS)
+debug: $(BIN_DIR)/$(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^
+release: CXXFLAGS += $(RELEASEFLAGS)
+release: CFLAGS   += $(RELEASEFLAGS)
+release: $(BIN_DIR)/$(TARGET)
 
-$(DEPDIR)/%.d: $(SRCDIR)/%$(EXT) | $(DEPDIR)
-	@$(CC) $(CFLAGS) $< -MM -MT $(@:$(DEPDIR)/%.d=$(OBJDIR)/%.o) >$@
+$(BIN_DIR)/$(TARGET): $(OBJS) | $(BIN_DIR)
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
--include $(DEP)
+$(BUILD_DIR)/%.c.o: %.c | $(BUILD_SRC_DIRS)
+	$(CC) $(CFLAGS) $(INC_DIRS_FLAGS) -c $< -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%$(EXT) | $(OBJDIR)
-	$(CC) $(CCFLAGS) -o $@ -c $<
+$(BUILD_DIR)/%.cpp.o: %.cpp | $(BUILD_SRC_DIRS)
+	$(CXX) $(CXXFLAGS) $(INC_DIRS_FLAGS) -c $< -o $@
 
-$(OBJDIR):
-	mkdir -p $@
+$(BUILD_DIR)/%.s.o: %.s | $(BUILD_SRC_DIRS)
+	$(AS) $(ASFLAGS) -c $< -o $@
 
-$(DEPDIR):
-	mkdir -p $@
+$(BUILD_DIR)/%.d: % | $(BUILD_SRC_DIRS)
+	@$(CC) $< -MM -MT $(@:%.d=%.o) >$@
 
-##########CLEAN##########
+$(BUILD_DIR) $(BUILD_SRC_DIRS) $(BIN_DIR):
+	@$(MKDIR_P) $@
 
-.PHONY: clean
 clean:
-	rm -r $(OBJDIR) $(DEPDIR) $(TARGET)
+	$(RM_RF) $(BUILD_DIR) $(BIN_DIR)
+
+-include $(DEPS)
+
+MKDIR_P ?= mkdir -p
+RM_RF ?= rm -rf
+

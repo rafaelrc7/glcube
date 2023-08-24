@@ -1,5 +1,6 @@
 .clangd
 compile_commands.json
-cube
-obj
-dep
+/bin/
+/build/
+/result
+
